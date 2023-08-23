@@ -1,23 +1,44 @@
 import pandas as pd
 import luigi
 import os
+import shutil
+
+ruta_salida1 = os.path.join(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..")), "data", "data.xlsx")
+
+ruta = os.path.join(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..")), "data")
+
+ruta_salida2 = os.path.join(
+    os.path.abspath(os.path.join(os.path.dirname(__file__), "..")), "data", "last_version.txt")
+
+# Obtener la lista de archivos con prefijo "data_v" y extensión ".xlsx"
+existing_versions = [
+    f for f in os.listdir(ruta) if f.startswith("data_v") and f.endswith(".xlsx")
+]
+
+# Obtener el último número de versión existente
+last_version = max([int(f.split("_v")[1].split(".xlsx")[0]) for f in existing_versions], default=0)
+
+print("Tenga en cuenta que la ultima versión era la:")
+print(last_version)
+
+# Crear una copia de data.xlsx con el número de versión
+if os.path.exists(ruta_salida1):
+    last_version += 1
+    new_filename = f"data_v{last_version}.xlsx"
+    new_filepath = os.path.join(ruta, new_filename)
+    shutil.copy(ruta_salida1, new_filepath)
+    print(f"Se ha creado una copia de {ruta_salida1} como {new_filename}")
+
+    # Actualizar el archivo last_version.txt
+    with open(ruta_salida2, 'w') as f:
+        f.write(str(last_version))
+else:
+    print(f"No se encontró el archivo {ruta_salida1}")
 
 
-class RenameAndRemoveTask(luigi.Task):
-
-    original_file=os.path.join(
-        os.path.abspath(os.path.join(os.path.dirname(__file__), "..")), "data", "data.xlsx")
-
-    ruta_salida = os.path.join(
-        os.path.abspath(os.path.join(os.path.dirname(__file__), "..")), "data")
-
-    def output(self):
-        renamed_file = os.path.join(self.ruta_salida, "data_")
-        return luigi.LocalTarget(renamed_file)
-
-    def run(self):
-        renamed_file_path = self.output().path
-        os.rename(self.original_file, renamed_file_path)
+os.remove(ruta_salida1)
 
 
 class Autodiagnostico(luigi.Task):
@@ -30,14 +51,6 @@ class Autodiagnostico(luigi.Task):
 
     ruta_salida = os.path.join(
         os.path.abspath(os.path.join(os.path.dirname(__file__), "..")), "data", "data.xlsx")
-
-    def requires(self):
-        return{
-
-            'rename&remove': RenameAndRemoveTask()
-        }
-
-
 
     def output(self):
         return luigi.LocalTarget(self.ruta_salida)
@@ -79,7 +92,7 @@ class Autodiagnostico(luigi.Task):
 
 
 if __name__ == '__main__':
-    luigi.build([Autodiagnostico()], local_scheduler = True)
+    luigi.build([Autodiagnostico()], local_scheduler=True)
 
 
 
