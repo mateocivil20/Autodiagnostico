@@ -5,7 +5,7 @@ __pycache__/
 
 # IDE
 /.idea
-/data
+#/data
 conf/config_local.yml
 *.env
 
